@@ -1,0 +1,128 @@
+structure St = W_datatypes
+
+%%
+%name Whl
+
+%term
+    EOF|ID of string|INT_CONST of string|OR|AND|NOT|GEQ|GT|LEQ|LT
+	|NEQ|EQ|DIV|TIMES|MOD|MINUS|NEG|PLUS|LBRACE|RBRACE|LPARAN|RPARAN|SET
+	|SEMICOLON|COLON|DOUBCOLON|COMMA|TR|FAL|VAR|PROG|INT|BOOL|WRITE
+	|READ|WHILE|DO|ENDWH|IF|THEN|ELSE|ENDIF
+
+%nonterm
+	  start   of W_datatypes.Program
+	| block of W_datatypes.Blocks
+	| declarations of W_datatypes.Declarations list
+	| declarations_a of W_datatypes.Declarations list
+	| declaration of W_datatypes.Declarations
+	| idlist of W_datatypes.ComSep list
+	| idlist_a of W_datatypes.ComSep
+	| statements of W_datatypes.Commands
+	| statements_a of W_datatypes.Commands list
+	| statement of W_datatypes.Commands
+	| or_exp of W_datatypes.Expressions
+	| and_exp of W_datatypes.Expressions
+	| unary_rel_exp of W_datatypes.Expressions
+	| rel_exp of W_datatypes.Expressions
+	| sum_exp of W_datatypes.Expressions
+	| mul_exp of W_datatypes.Expressions
+	| unary_exp of W_datatypes.Expressions
+	| numb of W_datatypes.Expressions
+	| imm of W_datatypes.Expressions
+	| exp_a of W_datatypes.Expressions
+	| typea of W_datatypes.Types
+
+%eop EOF
+%verbose
+(* %pure *)
+%right SET
+%left OR
+%left AND
+%right NOT
+%left EQ NEQ
+%left LT LEQ GT GEQ
+%left PLUS MINUS
+%left TIMES DIV MOD
+%right NEG
+%pos int
+%noshift EOF
+%arg (fileName) : string
+
+%%
+
+start : PROG ID DOUBCOLON block                (W_datatypes.PROG(ID,block))
+
+block : declarations LBRACE statements RBRACE  (W_datatypes.BLK(declarations,statements))
+
+declarations : declaration declarations    (declaration::declarations)
+            |               ([])
+	
+declaration : VAR ID idlist COLON typea SEMICOLON (W_datatypes.abc(ID,idlist,typea))
+
+idlist : idlist_a idlist                     (idlist_a::idlist)
+		|                   ([])
+
+idlist_a : COMMA ID                          (W_datatypes.SEQ(ID))
+
+statements : statements_a 		             (W_datatypes.CMD(statements_a))
+
+statements_a : statement statements_a 		 (statement::statements_a)
+            |               ([])
+	
+statement:  
+	  WHILE rel_exp DO LBRACE statements RBRACE ENDWH SEMICOLON	                         	    (W_datatypes.WH(rel_exp, statements))
+	| IF rel_exp THEN LBRACE statements RBRACE ELSE LBRACE statements RBRACE ENDIF SEMICOLON	(W_datatypes.IFT(rel_exp,statements1,statements2))
+	| WRITE sum_exp SEMICOLON                (W_datatypes.Write(sum_exp))
+	| READ ID SEMICOLON                      (W_datatypes.Read(ID))
+	| ID SET rel_exp SEMICOLON		 	     (W_datatypes.Assign(ID,rel_exp))
+
+rel_exp :
+      rel_exp EQ unary_rel_exp				 (W_datatypes.Equlaity(rel_exp,unary_rel_exp))
+	| rel_exp LT unary_rel_exp				 (W_datatypes.LessThen(rel_exp,unary_rel_exp))
+	| rel_exp LEQ unary_rel_exp				 (W_datatypes.LessOrEqual(rel_exp,unary_rel_exp))
+	| rel_exp GEQ unary_rel_exp				 (W_datatypes.GreaterOrEqual(rel_exp,unary_rel_exp))
+	| rel_exp NEQ unary_rel_exp				 (W_datatypes.NotEqual(rel_exp,unary_rel_exp))
+	| rel_exp GT unary_rel_exp				 (W_datatypes.GreaterThen(rel_exp,unary_rel_exp))
+    | unary_rel_exp                          (unary_rel_exp)
+
+unary_rel_exp : 
+	  NOT unary_rel_exp  					 (W_datatypes.Not(unary_rel_exp))
+    | or_exp                        	     (or_exp)
+
+or_exp :
+	  or_exp OR and_exp						 (W_datatypes.Or(or_exp,and_exp))
+    | and_exp								 (and_exp)
+
+and_exp : 
+      and_exp AND sum_exp				 	 (W_datatypes.And(and_exp,sum_exp))
+    | sum_exp                          		 (sum_exp)
+
+sum_exp : 
+	  sum_exp PLUS mul_exp			     	 (W_datatypes.Add(sum_exp,mul_exp))
+	| sum_exp MINUS mul_exp	            	 (W_datatypes.Subtract(sum_exp,mul_exp))
+    | mul_exp                                (mul_exp)
+
+mul_exp :
+	  mul_exp TIMES unary_exp	       	  	 (W_datatypes.Multiply(mul_exp,unary_exp))
+	| mul_exp DIV unary_exp				     (W_datatypes.Divide(mul_exp,unary_exp))
+	| mul_exp MOD unary_exp				     (W_datatypes.Modulus(mul_exp,unary_exp))
+    | unary_exp                              (unary_exp)
+
+unary_exp :
+	  NEG unary_exp  				         (W_datatypes.Negative(unary_exp))
+	| numb									 (numb)
+
+numb :
+	  ID							         (W_datatypes.Id(ID))
+	| imm 									 (imm)
+	
+imm :
+	  INT_CONST							     (W_datatypes.Const(INT_CONST))
+	| exp_a                                  (exp_a)
+	| LPARAN rel_exp RPARAN				     (rel_exp)
+	
+exp_a: TR									 (W_datatypes.tr_ue())
+	| FAL									 (W_datatypes.fl_ase())
+
+typea : INT 							     (W_datatypes.d_int())
+	| BOOL									 (W_datatypes.d_bool())
